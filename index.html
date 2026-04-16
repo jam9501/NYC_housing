@@ -116,7 +116,7 @@
 <script>
 let data = [];
 
-fetch("./nyc_housing.csv")
+fetch("https://raw.githubusercontent.com/jam9501/REPO_NAME/main/nyc_housing.csv")
   .then(res => {
     if (!res.ok) throw new Error("CSV not found");
     return res.text();
