@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>NYC Home Price Index By Zip Code</title>
+  <title>NYC Housing Table</title>
 
   <style>
     body {
@@ -85,9 +85,9 @@
 
 <div class="container">
 
-  <h2>NYC Home Price Index By Zip Code</h2>
+  <h2>NYC Housing Values by ZIP Code</h2>
   <div class="subtitle">
-    Home price changes between Feb 2025 and Feb 2026 (ZHVI)
+    Home price changes between Feb 2025 and Feb 2026
   </div>
 
   <input type="text" id="search" placeholder="Search ZIP or county..." />
@@ -107,21 +107,21 @@
     </table>
   </div>
 
-  <div class="note">Source: Zillow ZHVI CSV</div>
+  <div class="note">Source: nyc_housing_clean.csv</div>
 
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
 <script>
-
-const CSV_URL = "https://raw.githubusercontent.com/jam9501/YOUR_REPO_NAME/main/nyc_housing.csv";
-
 let data = [];
 
-fetch(CSV_URL)
+// =========================================================
+// FETCH CSV
+// =========================================================
+fetch("./nyc_housing_clean.csv")
   .then(res => {
-    if (!res.ok) throw new Error("CSV not found or wrong URL");
+    if (!res.ok) throw new Error("CSV not found");
     return res.text();
   })
   .then(text => {
@@ -131,58 +131,58 @@ fetch(CSV_URL)
       skipEmptyLines: true
     });
 
-    console.log("COLUMNS:", parsed.meta.fields);
-    console.log("SAMPLE ROW:", parsed.data[0]);
+    console.log("FIELDS:", parsed.meta.fields);
+    console.log("SAMPLE:", parsed.data[0]);
 
     data = parsed.data;
-
     renderTable(data);
   })
-  .catch(err => {
-    console.error("ERROR LOADING CSV:", err);
-  });
+  .catch(err => console.error(err));
 
+
+// =========================================================
+// PARSERS (SAFE)
+// =========================================================
+function parseMoney(val) {
+  if (!val) return null;
+  return Number(String(val).replace(/[$,]/g, ""));
+}
+
+function parsePercent(val) {
+  if (!val) return null;
+  return Number(String(val).replace(/%/g, ""));
+}
+
+
+// =========================================================
+// FORMATTERS (DISPLAY)
+// =========================================================
 function formatMoney(val) {
-  if (!val || isNaN(val)) return "";
-  return "$" + Number(val).toLocaleString(undefined, {
-    maximumFractionDigits: 0
-  });
+  if (val === null || val === undefined || isNaN(val)) return "";
+  return "$" + Number(val).toLocaleString();
 }
 
 function formatPercent(val) {
-  if (val === null || val === undefined || val === "" || isNaN(val)) return "";
-
-  const num = Number(val);
-  const pct = Math.abs(num) < 1 ? num * 100 : num;
-
-  return pct.toFixed(2) + "%";
+  if (val === null || val === undefined || isNaN(val)) return "";
+  return Number(val).toFixed(2) + "%";
 }
 
+
+// =========================================================
+// RENDER TABLE
+// =========================================================
 function renderTable(rows) {
   const tbody = document.querySelector("#table tbody");
   tbody.innerHTML = "";
 
   rows.forEach(r => {
 
-    const zip = r["RegionName"] || r["ZIP Code"] || "";
-    const county = r["CountyName"] || r["County"] || "";
+    const zip = r["ZIP Code"] || r["ZIP"] || r["RegionName"] || "";
+    const county = r["County"] || r["CountyName"] || "";
 
-    // Zillow format fallback
-    const v2025 =
-      r["Feb 2025"] ||
-      r["2025-02-28"] ||
-      r["2025-02"] ||
-      "";
-
-    const v2026 =
-      r["Feb 2026"] ||
-      r["2026-02-28"] ||
-      r["2026-02"] ||
-      "";
-
-    const change =
-      r["% Change"] ||
-      (v2025 && v2026 ? (v2026 / v2025) - 1 : "");
+    const v2025 = parseMoney(r["Feb 2025"]);
+    const v2026 = parseMoney(r["Feb 2026"]);
+    const change = parsePercent(r["% Change"]);
 
     tbody.innerHTML += `
       <tr>
@@ -195,7 +195,11 @@ function renderTable(rows) {
     `;
   });
 }
+
+
+// =========================================================
 // SEARCH
+// =========================================================
 document.getElementById("search").addEventListener("input", e => {
   const val = e.target.value.toLowerCase();
 
@@ -205,7 +209,6 @@ document.getElementById("search").addEventListener("input", e => {
 
   renderTable(filtered);
 });
-
 </script>
 
 </body>
