@@ -164,32 +164,25 @@ function renderTable(rows) {
 
   rows.forEach(r => {
 
-    // SAFE ZILLOW COMPATIBLE MAPPING
-    const zip =
-      r["ZIP Code"] ||
-      r["RegionName"] ||
-      "";
+    const zip = r["RegionName"] || r["ZIP Code"] || "";
+    const county = r["CountyName"] || r["County"] || "";
 
-    const county =
-      r["County"] ||
-      r["CountyName"] ||
-      "";
-
+    // Zillow format fallback
     const v2025 =
       r["Feb 2025"] ||
+      r["2025-02-28"] ||
       r["2025-02"] ||
-      r["2025-02-29"] ||
-      r["2025-02-28"];
+      "";
 
     const v2026 =
       r["Feb 2026"] ||
+      r["2026-02-28"] ||
       r["2026-02"] ||
-      r["2026-02-28"];
+      "";
 
     const change =
       r["% Change"] ||
-      r["Growth Rate"] ||
-      (v2025 && v2026 ? (v2026 / v2025) - 1 : null);
+      (v2025 && v2026 ? (v2026 / v2025) - 1 : "");
 
     tbody.innerHTML += `
       <tr>
@@ -202,7 +195,6 @@ function renderTable(rows) {
     `;
   });
 }
-
 // SEARCH
 document.getElementById("search").addEventListener("input", e => {
   const val = e.target.value.toLowerCase();
