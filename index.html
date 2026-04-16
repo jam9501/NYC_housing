@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>NYC Home Price Index By Zip Code</title>
+
+  <style>
+    body {
+      font-family: system-ui, -apple-system, Arial;
+      background: #ffffff;
+      margin: 0;
+      padding: 24px;
+      color: #111;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    h2 {
+      font-size: 20px;
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 14px;
+    }
+
+    input {
+      padding: 8px 10px;
+      margin-bottom: 12px;
+      width: 100%;
+      max-width: 320px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    .table-wrapper {
+      border: 1px solid #e6e6e6;
+      border-radius: 8px;
+      overflow-x: auto;
+      background: #fff;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 14px;
+    }
+
+    th, td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #eee;
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    th {
+      background: #fafafa;
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+    }
+
+    tr:hover {
+      background: #f7f7f7;
+    }
+
+    td.num {
+      text-align: right;
+    }
+
+    .note {
+      font-size: 12px;
+      color: #888;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <h2>NYC Home Price Index By Zip Code</h2>
+  <div class="subtitle">
+    Home price changes between Feb 2025 and Feb 2026
+  </div>
+
+  <input type="text" id="search" placeholder="Search ZIP or county..." />
+
+  <div class="table-wrapper">
+    <table id="table">
+      <thead>
+        <tr>
+          <th>ZIP Code</th>
+          <th>County</th>
+          <th>Feb 2025</th>
+          <th>Feb 2026</th>
+          <th>% Change</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="note">Source: Zillow ZHVI CSV</div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+<script>
+let data = [];
+
+fetch("./nyc_housing.csv")
+  .then(res => {
+    if (!res.ok) throw new Error("CSV not found");
+    return res.text();
+  })
+  .then(text => {
+
+    const parsed = Papa.parse(text, {
+      header: true,
+      skipEmptyLines: true
+    });
+
+    data = parsed.data;
+    renderTable(data);
+  })
+  .catch(err => console.error(err));
+
+function formatMoney(val) {
+  if (!val) return "";
+  return "$" + Number(val).toLocaleString(undefined, {
+    maximumFractionDigits: 0
+  });
+}
+
+function formatPercent(val) {
+  if (val === null || val === undefined || val === "") return "";
+
+  const num = Number(val);
+  const pct = num > 1 ? num : num * 100;
+
+  return pct.toFixed(1) + "%";
+}
+
+function renderTable(rows) {
+  const tbody = document.querySelector("#table tbody");
+  tbody.innerHTML = "";
+
+  rows.forEach(r => {
+
+    const zip = r["ZIP Code"] || r["RegionName"];
+    const county = r["County"] || r["CountyName"];
+
+    const v2025 = r["Feb 2025"] || r["2025-02"];
+    const v2026 = r["Feb 2026"] || r["2026-02"];
+    const change = r["% Change"] || r["Growth Rate"];
+
+    tbody.innerHTML += `
+      <tr>
+        <td>${zip || ""}</td>
+        <td>${county || ""}</td>
+        <td class="num">${formatMoney(v2025)}</td>
+        <td class="num">${formatMoney(v2026)}</td>
+        <td class="num">${formatPercent(change)}</td>
+      </tr>
+    `;
+  });
+}
+
+// search
+document.getElementById("search").addEventListener("input", e => {
+  const val = e.target.value.toLowerCase();
+
+  const filtered = data.filter(r =>
+    JSON.stringify(r).toLowerCase().includes(val)
+  );
+
+  renderTable(filtered);
+});
+</script>
+
+</body>
+</html>
